@@ -1,75 +1,108 @@
-import "package:flutter/material.dart";
+import 'package:flutter/material.dart';
+
+import 'screens/home_screen.dart';
+import 'screens/activity_screen.dart';
+import 'screens/weight_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const FitApp());
 }
 
-// Returns the MaterialApp
-class MyApp extends StatelessWidget {
-  MyApp({super.key});
+class FitApp extends StatelessWidget {
+  const FitApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: MainScreen());
+    return MaterialApp(
+      title: 'Fitness App',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF7F8FA),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF20D6C7),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF7F8FA),
+          elevation: 0,
+          centerTitle: false,
+          foregroundColor: Colors.black,
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          selectedItemColor: Color(0xFF20D6C7),
+          unselectedItemColor: Colors.grey,
+          backgroundColor: Colors.white,
+          type: BottomNavigationBarType.fixed,
+        ),
+      ),
+      home: const MainContainer(),
+    );
   }
 }
 
-// Returns the Scaffold
-class MainScreen extends StatefulWidget {
-  MainScreen({super.key});
+class MainContainer extends StatefulWidget {
+  const MainContainer({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<MainContainer> createState() => _MainContainerState();
 }
 
-class _MainScreenState extends State<MainScreen> {
-  List<Widget> _pages = [];
-  // List<BottomNavigationBarItem> itemsList = [
-  //   BottomNavigationBarItem(icon: Icon(Icons.home), label: "home"),
-  //   BottomNavigationBarItem(icon: Icon(Icons.directions_walk), label: "Steps"),
-  //   BottomNavigationBarItem(
-  //     icon: Icon(Icons.sports_gymnastics_sharp),
-  //     label: "Exercise",
-  //   ),
+class _MainContainerState extends State<MainContainer> {
+  int currentIndex = 0;
 
-  //   BottomNavigationBarItem(icon: Icon(Icons.settings), label: "settings"),
-  //   BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-  // ];
-  int index = 0;
-  // List<Widget> _pages = [HomePage(), StepsPage(),ExercisePage(),SettingsPage(),ProfilePage()];
+  Widget getScreen() {
+    if (currentIndex == 0) {
+      return const HomeScreen();
+    } else if (currentIndex == 1) {
+      return const ActivityScreen();
+    } else if (currentIndex == 2) {
+      return const WeightScreen();
+    } else if (currentIndex == 3) {
+      return const ProfileScreen();
+    } else {
+      return const SettingsScreen();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // App bar title is updated to "Login Screen"
-      appBar: AppBar(title: Text("Title goes here")),
-      body: _pages[index],
+      body: getScreen(),
       bottomNavigationBar: BottomNavigationBar(
-        showUnselectedLabels: true,
-        fixedColor: Colors.black87,
-        useLegacyColorScheme: false,
-        unselectedLabelStyle: TextStyle(color: Colors.black87),
-        // backgroundColor: Colors.amber,
-        onTap: (value) => setState(() {
-          index = value;
-        }),
-        currentIndex: index,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "home"),
+        currentIndex: currentIndex,
+        onTap: (index) {
+          setState(() {
+            currentIndex = index;
+          });
+        },
+        items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.directions_walk),
-            label: "Health",
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: "Home",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.sports_gymnastics_sharp),
-            label: "Exercise",
+            icon: Icon(Icons.directions_walk_outlined),
+            activeIcon: Icon(Icons.directions_walk),
+            label: "Activity",
           ),
-
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: "settings",
+            icon: Icon(Icons.monitor_weight_outlined),
+            activeIcon: Icon(Icons.monitor_weight),
+            label: "Weight",
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: "Profile",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_outlined),
+            activeIcon: Icon(Icons.settings),
+            label: "Settings",
+          ),
         ],
       ),
     );
