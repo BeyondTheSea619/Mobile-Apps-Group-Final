@@ -11,90 +11,42 @@ class AddWeightScreen extends StatefulWidget {
 }
 
 class _AddWeightScreenState extends State<AddWeightScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   final TextEditingController weightController = TextEditingController();
   final TextEditingController bmiController = TextEditingController();
   final TextEditingController noteController = TextEditingController();
 
-  bool isSaving = false;
-
   Future<void> saveWeight() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (formKey.currentState!.validate()) {
+      Weight weight = Weight(
+        weight: double.parse(weightController.text.trim()),
+        bmi: double.parse(bmiController.text.trim()),
+        note: noteController.text.trim(),
+        weightDate: DateTime.now().toString(),
+        photoPath: '',
+      );
 
-    setState(() {
-      isSaving = true;
-    });
+      int result = await DatabaseServices.insertWeight(weight.toMap());
 
-    Weight newWeight = Weight(
-      weight: double.parse(weightController.text.trim()),
-      bmi: double.parse(bmiController.text.trim()),
-      note: noteController.text.trim(),
-      weightDate: DateTime.now().toString(),
-      photoPath: '',
-    );
+      if (!mounted) return;
 
-    int result = await DatabaseServices.insertWeight(newWeight.toMap());
-
-    if (!mounted) return;
-
-    setState(() {
-      isSaving = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          result > 0 ? 'Weight saved successfully' : 'Could not save weight',
-        ),
-      ),
-    );
-
-    if (result > 0) {
-      Navigator.pop(context, true);
-    }
-  }
-
-  String? doubleValidation(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-
-    if (double.tryParse(value.trim()) == null) {
-      return 'Enter valid $fieldName';
-    }
-
-    return null;
-  }
-
-  Widget buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        validator: validator,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+      if (result > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Weight saved successfully'),
           ),
-        ),
-      ),
-    );
+        );
+
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save weight'),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -158,46 +110,89 @@ class _AddWeightScreenState extends State<AddWeightScreen> {
               ),
             ),
             Form(
-              key: _formKey,
+              key: formKey,
               child: Column(
                 children: [
-                  buildTextField(
-                    weightController,
-                    'Weight (kg)',
-                    Icons.monitor_weight_outlined,
+                  TextFormField(
+                    controller: weightController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    validator: (value) => doubleValidation(value, 'Weight'),
+                    decoration: InputDecoration(
+                      labelText: 'Weight (kg)',
+                      prefixIcon: const Icon(Icons.monitor_weight_outlined),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Weight is required';
+                      }
+                      if (double.tryParse(value.trim()) == null) {
+                        return 'Enter valid weight';
+                      }
+                      return null;
+                    },
                   ),
-                  buildTextField(
-                    bmiController,
-                    'BMI',
-                    Icons.favorite_outline,
+                  const SizedBox(height: 15),
+
+                  TextFormField(
+                    controller: bmiController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    validator: (value) => doubleValidation(value, 'BMI'),
+                    decoration: InputDecoration(
+                      labelText: 'BMI',
+                      prefixIcon: const Icon(Icons.favorite_outline),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'BMI is required';
+                      }
+                      if (double.tryParse(value.trim()) == null) {
+                        return 'Enter valid BMI';
+                      }
+                      return null;
+                    },
                   ),
-                  buildTextField(
-                    noteController,
-                    'Note',
-                    Icons.note_alt_outlined,
+                  const SizedBox(height: 15),
+
+                  // note can be left empty
+                  TextFormField(
+                    controller: noteController,
                     maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: 'Note',
+                      prefixIcon: const Icon(Icons.note_alt_outlined),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
+
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: isSaving ? null : saveWeight,
+                      onPressed: saveWeight,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF20D6C7),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                       ),
-                      child: Text(
-                        isSaving ? 'Saving...' : 'Save Weight',
-                        style: const TextStyle(fontSize: 16),
+                      child: const Text(
+                        'Save Weight',
+                        style: TextStyle(fontSize: 16),
                       ),
                     ),
                   ),

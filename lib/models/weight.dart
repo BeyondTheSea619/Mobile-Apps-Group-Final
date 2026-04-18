@@ -1,11 +1,14 @@
 class Weight {
   int? id;
+
   double weight;
   double bmi;
+
   String note;
   String weightDate;
   String photoPath;
 
+  // constructor to create weight entry
   Weight({
     this.id,
     required this.weight,
@@ -15,6 +18,7 @@ class Weight {
     required this.photoPath,
   });
 
+  // convert object to map (used when saving to database)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -26,14 +30,15 @@ class Weight {
     };
   }
 
+  // convert database map back to object
   factory Weight.fromMap(Map<String, dynamic> map) {
     return Weight(
       id: map['id'],
-      weight: (map['weight'] ?? 0).toDouble(),
-      bmi: (map['bmi'] ?? 0).toDouble(),
-      note: map['note'] ?? '',
-      weightDate: map['weightDate'] ?? '',
-      photoPath: map['photoPath'] ?? '',
+      weight: map['weight'].toDouble(),
+      bmi: map['bmi'].toDouble(),
+      note: map['note'],
+      weightDate: map['weightDate'],
+      photoPath: map['photoPath'],
     );
   }
 }

@@ -11,7 +11,7 @@ class AddActivityScreen extends StatefulWidget {
 }
 
 class _AddActivityScreenState extends State<AddActivityScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   final TextEditingController titleController = TextEditingController();
   final TextEditingController durationController = TextEditingController();
@@ -22,111 +22,41 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   final TextEditingController notesController = TextEditingController();
 
   String selectedType = 'Walking';
-  bool isSaving = false;
 
   Future<void> saveActivity() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() {
-      isSaving = true;
-    });
-
-    Activity newActivity = Activity(
-      title: titleController.text.trim(),
-      type: selectedType,
-      duration: int.parse(durationController.text.trim()),
-      calories: double.parse(caloriesController.text.trim()),
-      steps: int.parse(stepsController.text.trim()),
-      distance: double.parse(distanceController.text.trim()),
-      activityDate: DateTime.now().toString(),
-      location: locationController.text.trim(),
-      notes: notesController.text.trim(),
-    );
-
-    int result = await DatabaseServices.insertActivity(newActivity.toMap());
-
-    if (!mounted) return;
-
-    setState(() {
-      isSaving = false;
-    });
-
-    if (result > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Activity added successfully'),
-        ),
+    if (formKey.currentState!.validate()) {
+      Activity activity = Activity(
+        title: titleController.text.trim(),
+        type: selectedType,
+        duration: int.parse(durationController.text.trim()),
+        calories: double.parse(caloriesController.text.trim()),
+        steps: int.parse(stepsController.text.trim()),
+        distance: double.parse(distanceController.text.trim()),
+        activityDate: DateTime.now().toString(),
+        location: locationController.text.trim(),
+        notes: notesController.text.trim(),
       );
 
-      Navigator.pop(context, true);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not save activity'),
-        ),
-      );
-    }
-  }
+      int result = await DatabaseServices.insertActivity(activity.toMap());
 
-  String? emptyValidation(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-    return null;
-  }
+      if (!mounted) return;
 
-  String? intValidation(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-
-    if (int.tryParse(value.trim()) == null) {
-      return 'Enter valid $fieldName';
-    }
-
-    return null;
-  }
-
-  String? doubleValidation(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-
-    if (double.tryParse(value.trim()) == null) {
-      return 'Enter valid $fieldName';
-    }
-
-    return null;
-  }
-
-  Widget buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        validator: validator,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+      if (result > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Activity added successfully'),
           ),
-        ),
-      ),
-    );
+        );
+
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save activity'),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -194,19 +124,31 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
               ),
             ),
             Form(
-              key: _formKey,
+              key: formKey,
               child: Column(
                 children: [
-                  buildTextField(
-                    titleController,
-                    'Activity Title',
-                    Icons.title,
-                    validator: (value) =>
-                        emptyValidation(value, 'Activity title'),
+                  TextFormField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      labelText: 'Activity Title',
+                      prefixIcon: const Icon(Icons.title),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Activity title is required';
+                      }
+                      return null;
+                    },
                   ),
+                  const SizedBox(height: 15),
+
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    margin: const EdgeInsets.only(bottom: 15),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -243,68 +185,152 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                       },
                     ),
                   ),
-                  buildTextField(
-                    durationController,
-                    'Duration (minutes)',
-                    Icons.timer,
+                  const SizedBox(height: 15),
+
+                  TextFormField(
+                    controller: durationController,
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        intValidation(value, 'duration'),
-                  ),
-                  buildTextField(
-                    caloriesController,
-                    'Calories Burned',
-                    Icons.local_fire_department,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                    decoration: InputDecoration(
+                      labelText: 'Duration (minutes)',
+                      prefixIcon: const Icon(Icons.timer),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    validator: (value) =>
-                        doubleValidation(value, 'calories'),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Duration is required';
+                      }
+                      if (int.tryParse(value.trim()) == null) {
+                        return 'Enter valid duration';
+                      }
+                      return null;
+                    },
                   ),
-                  buildTextField(
-                    stepsController,
-                    'Steps',
-                    Icons.directions_walk,
+                  const SizedBox(height: 15),
+
+                  TextFormField(
+                    controller: caloriesController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Calories Burned',
+                      prefixIcon: const Icon(Icons.local_fire_department),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Calories is required';
+                      }
+                      if (double.tryParse(value.trim()) == null) {
+                        return 'Enter valid calories';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 15),
+
+                  TextFormField(
+                    controller: stepsController,
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        intValidation(value, 'steps'),
-                  ),
-                  buildTextField(
-                    distanceController,
-                    'Distance (km)',
-                    Icons.map,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                    decoration: InputDecoration(
+                      labelText: 'Steps',
+                      prefixIcon: const Icon(Icons.directions_walk),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    validator: (value) =>
-                        doubleValidation(value, 'distance'),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Steps is required';
+                      }
+                      if (int.tryParse(value.trim()) == null) {
+                        return 'Enter valid steps';
+                      }
+                      return null;
+                    },
                   ),
-                  buildTextField(
-                    locationController,
-                    'Location',
-                    Icons.location_on,
-                    validator: (value) =>
-                        emptyValidation(value, 'location'),
+                  const SizedBox(height: 15),
+
+                  TextFormField(
+                    controller: distanceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Distance (km)',
+                      prefixIcon: const Icon(Icons.map),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Distance is required';
+                      }
+                      if (double.tryParse(value.trim()) == null) {
+                        return 'Enter valid distance';
+                      }
+                      return null;
+                    },
                   ),
-                  buildTextField(
-                    notesController,
-                    'Notes',
-                    Icons.note,
+                  const SizedBox(height: 15),
+
+                  TextFormField(
+                    controller: locationController,
+                    decoration: InputDecoration(
+                      labelText: 'Location',
+                      prefixIcon: const Icon(Icons.location_on),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Location is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 15),
+
+                  // notes can be optional
+                  TextFormField(
+                    controller: notesController,
                     maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: 'Notes',
+                      prefixIcon: const Icon(Icons.note),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
+
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: isSaving ? null : saveActivity,
+                      onPressed: saveActivity,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF20D6C7),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                       ),
-                      child: Text(
-                        isSaving ? 'Saving...' : 'Save Activity',
-                        style: const TextStyle(fontSize: 16),
+                      child: const Text(
+                        'Save Activity',
+                        style: TextStyle(fontSize: 16),
                       ),
                     ),
                   ),

@@ -7,17 +7,17 @@ import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 
 void main() {
-  runApp(const FitApp());
+  runApp(const MyApp());
 }
+// the stateless widget here is the root widget of the application!!!
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-class FitApp extends StatelessWidget {
-  const FitApp({super.key});
-
-  @override
+  @override // this is the build method of the stateless widget
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Fitness App',
       debugShowCheckedModeBanner: false,
+      title: 'Fitness App',
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF7F8FA),
@@ -37,71 +37,65 @@ class FitApp extends StatelessWidget {
           type: BottomNavigationBarType.fixed,
         ),
       ),
-      home: const MainContainer(),
+      home: const MainScreen(),
     );
   }
 }
+// the stateful widget here is the main screen of the application!!!
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
 
-class MainContainer extends StatefulWidget {
-  const MainContainer({super.key});
-
-  @override
-  State<MainContainer> createState() => _MainContainerState();
+  @override // this is the build method of the stateful widget
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainContainerState extends State<MainContainer> {
-  int currentIndex = 0;
+class _MainScreenState extends State<MainScreen> {
+  int selectedIndex = 0; // this index tells us which screen to display currently it is 0 so it will display the home screen
 
-  Widget getScreen() {
-    if (currentIndex == 0) {
-      return const HomeScreen();
-    } else if (currentIndex == 1) {
-      return const ActivityScreen();
-    } else if (currentIndex == 2) {
-      return const WeightScreen();
-    } else if (currentIndex == 3) {
-      return const ProfileScreen();
-    } else {
-      return const SettingsScreen();
-    }
-  }
-
+  final List<Widget> screens = const [
+    HomeScreen(),
+    ActivityScreen(),
+    WeightScreen(),
+    ProfileScreen(),
+    SettingsScreen(),
+  ];
+// below is the bottom navigation bar of the application contains 5 tabs 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: getScreen(),
+      body: screens[selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
+        currentIndex: selectedIndex,
         onTap: (index) {
           setState(() {
-            currentIndex = index;
+            selectedIndex = index;
           });
         },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
-            label: "Home",
+            label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.directions_walk_outlined),
             activeIcon: Icon(Icons.directions_walk),
-            label: "Activity",
+            label: 'Activity',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.monitor_weight_outlined),
             activeIcon: Icon(Icons.monitor_weight),
-            label: "Weight",
+            label: 'Weight',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
-            label: "Profile",
+            label: 'Profile',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
             activeIcon: Icon(Icons.settings),
-            label: "Settings",
+            label: 'Settings',
           ),
         ],
       ),

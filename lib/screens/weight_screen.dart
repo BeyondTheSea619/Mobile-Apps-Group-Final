@@ -13,40 +13,45 @@ class WeightScreen extends StatefulWidget {
 }
 
 class _WeightScreenState extends State<WeightScreen> {
-  List<Weight> weightList = [];
+  List<Weight> weights = [];
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    loadWeights();
+    getWeights();
   }
 
-  Future<void> loadWeights() async {
+  Future<void> getWeights() async {
     setState(() {
       isLoading = true;
     });
 
     final data = await DatabaseServices.getAllWeights();
-    weightList = data.map((item) => Weight.fromMap(item)).toList();
+
+    weights = data.map((item) {
+      return Weight.fromMap(item);
+    }).toList();
 
     setState(() {
       isLoading = false;
     });
   }
 
-  Future<void> deleteWeight(int id) async {
+  Future<void> removeWeight(int id) async {
     await DatabaseServices.deleteWeight(id);
-    await loadWeights();
+    await getWeights();
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Weight record deleted')),
+      const SnackBar(
+        content: Text('Weight record deleted'),
+      ),
     );
   }
 
-  void openAddWeightScreen() async {
+  Future<void> goToAddWeightScreen() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -55,101 +60,8 @@ class _WeightScreenState extends State<WeightScreen> {
     );
 
     if (result == true) {
-      loadWeights();
+      getWeights();
     }
-  }
-
-  Widget buildSummaryCard() {
-    if (weightList.isEmpty) {
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF20D6C7),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Column(
-          children: [
-            CircleAvatar(
-              radius: 35,
-              backgroundColor: Colors.white,
-              child: Icon(
-                Icons.monitor_weight,
-                size: 35,
-                color: Color(0xFF20D6C7),
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Weight Tracker',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              'No weight records added yet',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final latestWeight = weightList.first;
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF20D6C7),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          const CircleAvatar(
-            radius: 35,
-            backgroundColor: Colors.white,
-            child: Icon(
-              Icons.monitor_weight,
-              size: 35,
-              color: Color(0xFF20D6C7),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Latest Weight',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${latestWeight.weight} kg',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-            ),
-          ),
-          Text(
-            'BMI: ${latestWeight.bmi}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -163,42 +75,83 @@ class _WeightScreenState extends State<WeightScreen> {
       ),
       body: Column(
         children: [
-          buildSummaryCard(),
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF20D6C7),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Column(
+              children: [
+                CircleAvatar(
+                  radius: 35,
+                  backgroundColor: Colors.white,
+                  child: Icon(
+                    Icons.monitor_weight,
+                    size: 35,
+                    color: Color(0xFF20D6C7),
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Weight Tracker',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Track your weight records',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : weightList.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : weights.isEmpty
                     ? const Center(
                         child: Text(
                           'No weight records found',
                           style: TextStyle(fontSize: 16),
                         ),
                       )
-                    : RefreshIndicator(
-                        onRefresh: loadWeights,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: weightList.length,
-                          itemBuilder: (context, index) {
-                            final weightItem = weightList[index];
-                            return WeightCard(
-                              weightItem: weightItem,
-                              onDelete: () {
-                                if (weightItem.id != null) {
-                                  deleteWeight(weightItem.id!);
-                                }
-                              },
-                            );
-                          },
-                        ),
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: weights.length,
+                        itemBuilder: (context, index) {
+                          final weightItem = weights[index];
+
+                          return WeightCard(
+                            weightItem: weightItem,
+                            onDelete: () {
+                              if (weightItem.id != null) {
+                                removeWeight(weightItem.id!);
+                              }
+                            },
+                          );
+                        },
                       ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: openAddWeightScreen,
+        onPressed: goToAddWeightScreen,
         backgroundColor: const Color(0xFF20D6C7),
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
       ),
     );
   }

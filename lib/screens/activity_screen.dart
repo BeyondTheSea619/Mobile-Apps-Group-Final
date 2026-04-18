@@ -13,40 +13,45 @@ class ActivityScreen extends StatefulWidget {
 }
 
 class _ActivityScreenState extends State<ActivityScreen> {
-  List<Activity> activityList = [];
+  List<Activity> activities = [];
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    loadActivities();
+    getActivities();
   }
 
-  Future<void> loadActivities() async {
+  Future<void> getActivities() async {
     setState(() {
       isLoading = true;
     });
 
     final data = await DatabaseServices.getAllActivities();
-    activityList = data.map((item) => Activity.fromMap(item)).toList();
+
+    activities = data.map((item) {
+      return Activity.fromMap(item);
+    }).toList();
 
     setState(() {
       isLoading = false;
     });
   }
 
-  Future<void> deleteActivity(int id) async {
+  Future<void> removeActivity(int id) async {
     await DatabaseServices.deleteActivity(id);
-    await loadActivities();
+    await getActivities();
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Activity deleted')),
+      const SnackBar(
+        content: Text('Activity deleted'),
+      ),
     );
   }
 
-  void openAddActivityScreen() async {
+  Future<void> goToAddActivityScreen() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -54,8 +59,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
       ),
     );
 
+    // reload list after adding new activity
     if (result == true) {
-      loadActivities();
+      getActivities();
     }
   }
 
@@ -111,26 +117,31 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ),
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : activityList.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : activities.isEmpty
                     ? const Center(
                         child: Text(
                           'No activities added yet',
-                          style: TextStyle(fontSize: 16),
+                          style: TextStyle(
+                            fontSize: 16,
+                          ),
                         ),
                       )
                     : RefreshIndicator(
-                        onRefresh: loadActivities,
+                        onRefresh: getActivities,
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: activityList.length,
+                          itemCount: activities.length,
                           itemBuilder: (context, index) {
-                            final activity = activityList[index];
+                            final activity = activities[index];
+
                             return ActivityCard(
                               activity: activity,
                               onDelete: () {
                                 if (activity.id != null) {
-                                  deleteActivity(activity.id!);
+                                  removeActivity(activity.id!);
                                 }
                               },
                             );
@@ -141,9 +152,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: openAddActivityScreen,
+        onPressed: goToAddActivityScreen,
         backgroundColor: const Color(0xFF20D6C7),
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
       ),
     );
   }

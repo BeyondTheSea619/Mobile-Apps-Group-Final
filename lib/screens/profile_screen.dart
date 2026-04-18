@@ -1,7 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+
 import '../database/database_services.dart';
 import '../models/user.dart';
-import 'dart:io';
 import 'camera_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -12,15 +13,15 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController ageController = TextEditingController();
-  final TextEditingController heightController = TextEditingController();
-  final TextEditingController weightController = TextEditingController();
-  final TextEditingController goalWeightController = TextEditingController();
-  final TextEditingController targetStepsController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
+  final nameController = TextEditingController();
+  final ageController = TextEditingController();
+  final heightController = TextEditingController();
+  final weightController = TextEditingController();
+  final goalWeightController = TextEditingController();
+  final targetStepsController = TextEditingController();
+  final emailController = TextEditingController();
 
   String selectedGender = 'Male';
   String profileImagePath = '';
@@ -34,10 +35,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> loadProfile() async {
-    final userMap = await DatabaseServices.getFirstUser();
+    final data = await DatabaseServices.getFirstUser();
 
-    if (userMap != null) {
-      final user = User.fromMap(userMap);
+    if (data != null) {
+      User user = User.fromMap(data);
 
       userId = user.id;
       nameController.text = user.name;
@@ -72,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> saveProfile() async {
-    if (!_formKey.currentState!.validate()) {
+    if (!formKey.currentState!.validate()) {
       return;
     }
 
@@ -89,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       profileImagePath: profileImagePath,
     );
 
-    int result;
+    int result = 0;
 
     if (userId == null) {
       result = await DatabaseServices.insertUser(user.toMap());
@@ -103,19 +104,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
 
     if (result > 0) {
-      await loadProfile();
-      setState(() {});
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile saved successfully'),
-        ),
+        const SnackBar(content: Text('Profile saved successfully')),
       );
+      await loadProfile();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not save profile'),
-        ),
+        const SnackBar(content: Text('Could not save profile')),
       );
     }
   }
@@ -130,53 +125,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     emailController.clear();
 
     selectedGender = 'Male';
-    userId = null;
     profileImagePath = '';
+    userId = null;
 
     setState(() {});
   }
 
-  String? emptyValidation(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-    return null;
-  }
-
-  String? numberValidation(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-    if (double.tryParse(value) == null) {
-      return 'Enter valid $fieldName';
-    }
-    return null;
-  }
-
-  String? integerValidation(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-    if (int.tryParse(value) == null) {
-      return 'Enter valid $fieldName';
-    }
-    return null;
-  }
-
-  String? emailValidation(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Email is required';
-    }
-    if (!value.contains('@') || !value.contains('.')) {
-      return 'Enter valid email';
-    }
-    return null;
-  }
-
-  Widget buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
+  Widget buildField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
   }) {
@@ -213,6 +171,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String profileTitle = nameController.text.isEmpty
+        ? 'My Profile'
+        : nameController.text;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
       appBar: AppBar(
@@ -251,23 +213,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : null,
                         ),
                         const SizedBox(height: 10),
-                        SizedBox(
-                          width: 150,
-                          child: OutlinedButton.icon(
-                            onPressed: openCameraScreen,
-                            icon: const Icon(Icons.camera_alt),
-                            label: const Text('Add Photo'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white),
-                            ),
+                        OutlinedButton.icon(
+                          onPressed: openCameraScreen,
+                          icon: const Icon(Icons.camera_alt),
+                          label: const Text('Add Photo'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white),
                           ),
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          nameController.text.isEmpty
-                              ? 'My Profile'
-                              : nameController.text,
+                          profileTitle,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -278,23 +235,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   Form(
-                    key: _formKey,
+                    key: formKey,
                     child: Column(
                       children: [
-                        buildTextField(
-                          nameController,
-                          'Full Name',
-                          Icons.person,
-                          validator: (value) =>
-                              emptyValidation(value, 'Name'),
+                        buildField(
+                          controller: nameController,
+                          label: 'Full Name',
+                          icon: Icons.person,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Name is required';
+                            }
+                            return null;
+                          },
                         ),
-                        buildTextField(
-                          ageController,
-                          'Age',
-                          Icons.cake,
+                        buildField(
+                          controller: ageController,
+                          label: 'Age',
+                          icon: Icons.cake,
                           keyboardType: TextInputType.number,
-                          validator: (value) =>
-                              integerValidation(value, 'Age'),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Age is required';
+                            }
+                            if (int.tryParse(value.trim()) == null) {
+                              return 'Enter valid age';
+                            }
+                            return null;
+                          },
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -331,52 +299,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             },
                           ),
                         ),
-                        buildTextField(
-                          heightController,
-                          'Height (cm)',
-                          Icons.height,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: (value) =>
-                              numberValidation(value, 'Height'),
+                        buildField(
+                          controller: heightController,
+                          label: 'Height (cm)',
+                          icon: Icons.height,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Height is required';
+                            }
+                            if (double.tryParse(value.trim()) == null) {
+                              return 'Enter valid height';
+                            }
+                            return null;
+                          },
                         ),
-                        buildTextField(
-                          weightController,
-                          'Current Weight (kg)',
-                          Icons.monitor_weight,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: (value) =>
-                              numberValidation(value, 'Weight'),
+                        buildField(
+                          controller: weightController,
+                          label: 'Current Weight (kg)',
+                          icon: Icons.monitor_weight,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Weight is required';
+                            }
+                            if (double.tryParse(value.trim()) == null) {
+                              return 'Enter valid weight';
+                            }
+                            return null;
+                          },
                         ),
-                        buildTextField(
-                          goalWeightController,
-                          'Goal Weight (kg)',
-                          Icons.flag,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: (value) =>
-                              numberValidation(value, 'Goal Weight'),
+                        buildField(
+                          controller: goalWeightController,
+                          label: 'Goal Weight (kg)',
+                          icon: Icons.flag,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Goal weight is required';
+                            }
+                            if (double.tryParse(value.trim()) == null) {
+                              return 'Enter valid goal weight';
+                            }
+                            return null;
+                          },
                         ),
-                        buildTextField(
-                          targetStepsController,
-                          'Target Steps',
-                          Icons.directions_walk,
+                        buildField(
+                          controller: targetStepsController,
+                          label: 'Target Steps',
+                          icon: Icons.directions_walk,
                           keyboardType: TextInputType.number,
-                          validator: (value) =>
-                              integerValidation(value, 'Target Steps'),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Target steps is required';
+                            }
+                            if (int.tryParse(value.trim()) == null) {
+                              return 'Enter valid target steps';
+                            }
+                            return null;
+                          },
                         ),
-                        buildTextField(
-                          emailController,
-                          'Email',
-                          Icons.email,
+                        buildField(
+                          controller: emailController,
+                          label: 'Email',
+                          icon: Icons.email,
                           keyboardType: TextInputType.emailAddress,
-                          validator: emailValidation,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Email is required';
+                            }
+                            if (!value.contains('@') || !value.contains('.')) {
+                              return 'Enter valid email';
+                            }
+                            return null;
+                          },
                         ),
-                        const SizedBox(height: 10),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -386,10 +383,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 15),
                             ),
-                            child: const Text(
-                              'Save Profile',
-                              style: TextStyle(fontSize: 16),
-                            ),
+                            child: const Text('Save Profile'),
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -397,9 +391,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: double.infinity,
                           child: OutlinedButton(
                             onPressed: clearForm,
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                            ),
                             child: const Text('Clear Form'),
                           ),
                         ),

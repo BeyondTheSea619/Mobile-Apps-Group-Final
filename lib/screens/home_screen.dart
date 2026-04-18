@@ -33,129 +33,63 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    loadDashboardData();
+    loadHomeData();
   }
 
-  Future<void> loadDashboardData() async {
-    if (!mounted) return;
-
+  Future<void> loadHomeData() async {
     setState(() {
       isLoading = true;
     });
 
-    try {
-      final userMap = await DatabaseServices.getFirstUser();
-      if (userMap != null) {
-        currentUser = User.fromMap(userMap);
+    final userData = await DatabaseServices.getFirstUser();
+    final weightData = await DatabaseServices.getAllWeights();
+    final activityData = await DatabaseServices.getAllActivities();
+    final prefs = await SharedPreferences.getInstance();
+
+    User? loadedUser;
+    Weight? loadedWeight;
+
+    int steps = 0;
+    double calories = 0;
+    double distance = 0;
+
+    if (userData != null) {
+      loadedUser = User.fromMap(userData);
+    }
+
+    if (weightData.isNotEmpty) {
+      loadedWeight = Weight.fromMap(weightData.first);
+    }
+
+    DateTime now = DateTime.now();
+
+    for (int i = 0; i < activityData.length; i++) {
+      Activity activity = Activity.fromMap(activityData[i]);
+      DateTime activityDate = DateTime.parse(activity.activityDate);
+
+      if (activityDate.year == now.year &&
+          activityDate.month == now.month &&
+          activityDate.day == now.day) {
+        steps = steps + activity.steps;
+        calories = calories + activity.calories;
+        distance = distance + activity.distance;
       }
+    }
 
-      final weightData = await DatabaseServices.getAllWeights();
-      if (weightData.isNotEmpty) {
-        latestWeight = Weight.fromMap(weightData.first);
-      }
+    setState(() {
+      currentUser = loadedUser;
+      latestWeight = loadedWeight;
 
-      final activityData = await DatabaseServices.getAllActivities();
-      final now = DateTime.now();
+      todaySteps = steps;
+      todayCalories = calories;
+      todayDistance = distance;
 
-      int tempSteps = 0;
-      double tempCalories = 0;
-      double tempDistance = 0;
-
-      for (var item in activityData) {
-        try {
-          final activity = Activity.fromMap(item);
-          final activityDate = DateTime.parse(activity.activityDate);
-
-          if (activityDate.year == now.year &&
-              activityDate.month == now.month &&
-              activityDate.day == now.day) {
-            tempSteps += activity.steps;
-            tempCalories += activity.calories;
-            tempDistance += activity.distance;
-          }
-        } catch (e) {
-          // ignore bad data
-        }
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-
-      dailyGoal = prefs.getInt('step_goal') ?? currentUser?.targetSteps ?? 10000;
+      dailyGoal = prefs.getInt('step_goal') ?? loadedUser?.targetSteps ?? 10000;
       waterGoal = prefs.getDouble('water_goal') ?? 2.0;
       preferredActivity = prefs.getString('preferred_activity') ?? 'Walking';
 
-      if (mounted) {
-        setState(() {
-          todaySteps = tempSteps;
-          todayCalories = tempCalories;
-          todayDistance = tempDistance;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("Dashboard load error: $e");
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    }
-  }
-
-  double get progressValue {
-    if (dailyGoal == 0) return 0;
-    double progress = todaySteps / dailyGoal;
-    if (progress > 1) return 1;
-    return progress;
-  }
-
-  String get welcomeName {
-    if (currentUser == null || currentUser!.name.trim().isEmpty) {
-      return 'Fitness Dashboard';
-    }
-    return 'Hi, ${currentUser!.name}';
-  }
-
-  String get latestWeightText {
-    if (latestWeight != null) {
-      return '${latestWeight!.weight} kg';
-    }
-
-    if (currentUser != null) {
-      return '${currentUser!.weight} kg';
-    }
-
-    return '--';
-  }
-
-  String get todayDateText {
-    final now = DateTime.now();
-    return '${getWeekDay(now.weekday)}, ${now.day} ${getMonth(now.month)}';
-  }
-
-  String getWeekDay(int day) {
-    if (day == 1) return 'Mon';
-    if (day == 2) return 'Tue';
-    if (day == 3) return 'Wed';
-    if (day == 4) return 'Thu';
-    if (day == 5) return 'Fri';
-    if (day == 6) return 'Sat';
-    return 'Sun';
-  }
-
-  String getMonth(int month) {
-    if (month == 1) return 'Jan';
-    if (month == 2) return 'Feb';
-    if (month == 3) return 'Mar';
-    if (month == 4) return 'Apr';
-    if (month == 5) return 'May';
-    if (month == 6) return 'Jun';
-    if (month == 7) return 'Jul';
-    if (month == 8) return 'Aug';
-    if (month == 9) return 'Sep';
-    if (month == 10) return 'Oct';
-    if (month == 11) return 'Nov';
-    return 'Dec';
+      isLoading = false;
+    });
   }
 
   Future<void> openAddActivityScreen() async {
@@ -167,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (result == true) {
-      loadDashboardData();
+      loadHomeData();
     }
   }
 
@@ -179,416 +113,401 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    loadDashboardData();
+    loadHomeData();
   }
 
-  Widget buildStatCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.all(6),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: color.withOpacity(0.12),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black54,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
+  String getWeekDay(int day) {
+    if (day == 1) {
+      return 'Mon';
+    } else if (day == 2) {
+      return 'Tue';
+    } else if (day == 3) {
+      return 'Wed';
+    } else if (day == 4) {
+      return 'Thu';
+    } else if (day == 5) {
+      return 'Fri';
+    } else if (day == 6) {
+      return 'Sat';
+    } else {
+      return 'Sun';
+    }
   }
 
-  Widget buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              CircleAvatar(
-                backgroundColor: const Color(0xFFE8FBF8),
-                child: Icon(
-                  icon,
-                  color: const Color(0xFF20D6C7),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget buildInfoTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: const Color(0xFFE8FBF8),
-        child: Icon(
-          icon,
-          color: const Color(0xFF20D6C7),
-        ),
-      ),
-      title: Text(title),
-      subtitle: Text(subtitle),
-    );
+  String getMonth(int month) {
+    if (month == 1) {
+      return 'Jan';
+    } else if (month == 2) {
+      return 'Feb';
+    } else if (month == 3) {
+      return 'Mar';
+    } else if (month == 4) {
+      return 'Apr';
+    } else if (month == 5) {
+      return 'May';
+    } else if (month == 6) {
+      return 'Jun';
+    } else if (month == 7) {
+      return 'Jul';
+    } else if (month == 8) {
+      return 'Aug';
+    } else if (month == 9) {
+      return 'Sep';
+    } else if (month == 10) {
+      return 'Oct';
+    } else if (month == 11) {
+      return 'Nov';
+    } else {
+      return 'Dec';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    String titleText = 'Fitness Dashboard';
+    String weightText = '--';
+
+    DateTime now = DateTime.now();
+    String todayDate =
+        '${getWeekDay(now.weekday)}, ${now.day} ${getMonth(now.month)}';
+
+    if (currentUser != null && currentUser!.name.trim().isNotEmpty) {
+      titleText = 'Hi, ${currentUser!.name}';
+    }
+
+    if (latestWeight != null) {
+      weightText = '${latestWeight!.weight} kg';
+    } else if (currentUser != null) {
+      weightText = '${currentUser!.weight} kg';
+    }
+
+    double progressValue = 0;
+    if (dailyGoal > 0) {
+      progressValue = todaySteps / dailyGoal;
+      if (progressValue > 1) {
+        progressValue = 1;
+      }
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
       appBar: AppBar(
-        title: const Text('Today'),
+        title: const Text('Home'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: loadDashboardData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFF20D6C7),
-                            Color(0xFF3CD3C5),
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF20D6C7),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 28,
+                              backgroundColor: Colors.white,
+                              backgroundImage: currentUser != null &&
+                                      currentUser!.profileImagePath.isNotEmpty
+                                  ? FileImage(
+                                      File(currentUser!.profileImagePath),
+                                    )
+                                  : null,
+                              child: currentUser == null ||
+                                      currentUser!.profileImagePath.isEmpty
+                                  ? const Icon(
+                                      Icons.person,
+                                      color: Color(0xFF20D6C7),
+                                      size: 28,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    titleText,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    todayDate,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF20D6C7).withOpacity(0.25),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Daily Goal Progress',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 10),
+                        LinearProgressIndicator(
+                          value: progressValue,
+                          minHeight: 10,
+                          backgroundColor: Colors.white30,
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          '$todaySteps / $dailyGoal steps',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    'Today Overview',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.directions_walk,
+                                  color: Colors.teal,
+                                  size: 28,
+                                ),
+                                const SizedBox(height: 8),
+                                const Text('Steps'),
+                                const SizedBox(height: 6),
+                                Text(
+                                  todaySteps.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text('Today'),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
+                      Expanded(
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.local_fire_department,
+                                  color: Colors.red,
+                                  size: 28,
+                                ),
+                                const SizedBox(height: 8),
+                                const Text('Calories'),
+                                const SizedBox(height: 6),
+                                Text(
+                                  todayCalories.toStringAsFixed(0),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text('Burned'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.map,
+                                  color: Colors.indigo,
+                                  size: 28,
+                                ),
+                                const SizedBox(height: 8),
+                                const Text('Distance'),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '${todayDistance.toStringAsFixed(1)} km',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text('Today'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.monitor_weight,
+                                  color: Colors.blue,
+                                  size: 28,
+                                ),
+                                const SizedBox(height: 8),
+                                const Text('Weight'),
+                                const SizedBox(height: 6),
+                                Text(
+                                  weightText,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text('Latest'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    'Quick Actions',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: openAddActivityScreen,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Activity'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF20D6C7),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: openMapScreen,
+                          icon: const Icon(Icons.location_on),
+                          label: const Text('Open Map'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF20D6C7),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
                       child: Column(
                         children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 28,
-                                backgroundColor: Colors.white,
-                                backgroundImage: currentUser != null &&
-                                        currentUser!.profileImagePath.isNotEmpty
-                                    ? FileImage(
-                                        File(currentUser!.profileImagePath),
-                                      )
-                                    : null,
-                                child: currentUser == null ||
-                                        currentUser!.profileImagePath.isEmpty
-                                    ? const Icon(
-                                        Icons.person,
-                                        color: Color(0xFF20D6C7),
-                                        size: 28,
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      welcomeName,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      todayDateText,
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.18),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Icon(
-                                  Icons.favorite,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 22),
-                          Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Daily Goal Progress',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                '${(progressValue * 100).toStringAsFixed(0)}%',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: LinearProgressIndicator(
-                              value: progressValue,
-                              minHeight: 10,
-                              backgroundColor: Colors.white24,
-                              valueColor: const AlwaysStoppedAnimation(
-                                Colors.white,
+                          const ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Fitness Details',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              '$todaySteps / $dailyGoal steps',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
+                          ListTile(
+                            leading: const Icon(Icons.flag),
+                            title: const Text('Step Goal'),
+                            subtitle: Text('$dailyGoal steps'),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.water_drop),
+                            title: const Text('Water Goal'),
+                            subtitle: Text('${waterGoal.toStringAsFixed(1)} L'),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.fitness_center),
+                            title: const Text('Preferred Activity'),
+                            subtitle: Text(preferredActivity),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.person),
+                            title: const Text('Profile Name'),
+                            subtitle: Text(
+                              currentUser?.name ?? 'No profile saved',
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 22),
-
-                    const Text(
-                      'Today Overview',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    Row(
-                      children: [
-                        buildStatCard(
-                          title: 'Steps',
-                          value: todaySteps.toString(),
-                          subtitle: 'Today',
-                          icon: Icons.directions_walk,
-                          color: Colors.teal,
-                        ),
-                        buildStatCard(
-                          title: 'Calories',
-                          value: todayCalories.toStringAsFixed(0),
-                          subtitle: 'Burned',
-                          icon: Icons.local_fire_department,
-                          color: Colors.redAccent,
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        buildStatCard(
-                          title: 'Distance',
-                          value: '${todayDistance.toStringAsFixed(1)} km',
-                          subtitle: 'Today',
-                          icon: Icons.map,
-                          color: Colors.indigo,
-                        ),
-                        buildStatCard(
-                          title: 'Weight',
-                          value: latestWeightText,
-                          subtitle: 'Latest',
-                          icon: Icons.monitor_weight_outlined,
-                          color: Colors.blue,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    const Text(
-                      'Quick Actions',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    Row(
-                      children: [
-                        buildActionButton(
-                          icon: Icons.add_circle_outline,
-                          label: 'Add Activity',
-                          onTap: openAddActivityScreen,
-                        ),
-                        const SizedBox(width: 12),
-                        buildActionButton(
-                          icon: Icons.location_on_outlined,
-                          label: 'Open Map',
-                          onTap: openMapScreen,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Fitness Insights',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          buildInfoTile(
-                            icon: Icons.flag_outlined,
-                            title: 'Step Goal',
-                            subtitle: '$dailyGoal steps',
-                          ),
-                          buildInfoTile(
-                            icon: Icons.water_drop_outlined,
-                            title: 'Water Goal',
-                            subtitle: '${waterGoal.toStringAsFixed(1)} L',
-                          ),
-                          buildInfoTile(
-                            icon: Icons.fitness_center,
-                            title: 'Preferred Activity',
-                            subtitle: preferredActivity,
-                          ),
-                          buildInfoTile(
-                            icon: Icons.person_outline,
-                            title: 'Profile Name',
-                            subtitle:
-                                currentUser?.name ?? 'No profile saved',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  const SizedBox(height: 10),
+                ],
               ),
             ),
     );

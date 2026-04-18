@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+
 import '../location_service.dart';
 
-const String apiKey = "4KunLLoYfonblsh2vbbM";
+const String apiKey = '4KunLLoYfonblsh2vbbM';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -14,38 +15,28 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  LatLng currentPoint = LatLng(43.4794, -80.5180); 
-  String locationText = 'Tap the button to get current location';
-  bool isLoading = false;
+  LatLng currentPoint = LatLng(43.4794, -80.5180);
+  String locationText = 'Tap button to get location';
 
-  Future<void> fetchLocation() async {
-    setState(() {
-      isLoading = true;
-    });
-
+  Future<void> getLocation() async {
     try {
       Position position = await LocationService.determinePosition();
 
       setState(() {
         currentPoint = LatLng(position.latitude, position.longitude);
         locationText =
-            'Lat: ${position.latitude.toStringAsFixed(5)}, '
-            'Lng: ${position.longitude.toStringAsFixed(5)}';
+            'Lat: ${position.latitude.toStringAsFixed(5)}, Lng: ${position.longitude.toStringAsFixed(5)}';
       });
     } catch (e) {
       setState(() {
-        locationText = e.toString();
+        locationText = 'Could not get location';
       });
     }
-
-    setState(() {
-      isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF20D6C7);
+    const Color primaryColor = Color(0xFF20D6C7);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
@@ -86,7 +77,7 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'View your current position on the map',
+                  'View your current location',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -98,10 +89,6 @@ class _MapScreenState extends State<MapScreen> {
           Expanded(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-              ),
               child: FlutterMap(
                 options: MapOptions(
                   initialCenter: currentPoint,
@@ -134,31 +121,23 @@ class _MapScreenState extends State<MapScreen> {
             width: double.infinity,
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
+            color: Colors.white,
             child: Column(
               children: [
                 Text(
                   locationText,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: isLoading ? null : fetchLocation,
+                  child: ElevatedButton(
+                    onPressed: getLocation,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    icon: const Icon(Icons.my_location),
-                    label: Text(
-                      isLoading ? 'Getting Location...' : 'Get Current Location',
-                    ),
+                    child: const Text('Get Current Location'),
                   ),
                 ),
               ],

@@ -1,15 +1,18 @@
 class Activity {
   int? id;
+
   String title;
   String type;
   int duration;
   double calories;
   int steps;
   double distance;
+
   String activityDate;
   String location;
   String notes;
 
+  // simple constructor to create activity object
   Activity({
     this.id,
     required this.title,
@@ -23,6 +26,7 @@ class Activity {
     required this.notes,
   });
 
+  // convert object to map (used when inserting into database)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -38,18 +42,19 @@ class Activity {
     };
   }
 
+  // convert map from database back to object
   factory Activity.fromMap(Map<String, dynamic> map) {
     return Activity(
       id: map['id'],
-      title: map['title'] ?? '',
-      type: map['type'] ?? '',
-      duration: map['duration'] ?? 0,
-      calories: (map['calories'] ?? 0).toDouble(),
-      steps: map['steps'] ?? 0,
-      distance: (map['distance'] ?? 0).toDouble(),
-      activityDate: map['activityDate'] ?? '',
-      location: map['location'] ?? '',
-      notes: map['notes'] ?? '',
+      title: map['title'],
+      type: map['type'],
+      duration: map['duration'],
+      calories: map['calories'].toDouble(),
+      steps: map['steps'],
+      distance: map['distance'].toDouble(),
+      activityDate: map['activityDate'],
+      location: map['location'],
+      notes: map['notes'],
     );
   }
 }

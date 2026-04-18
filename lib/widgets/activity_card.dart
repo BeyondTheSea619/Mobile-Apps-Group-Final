@@ -11,12 +11,12 @@ class ActivityCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  IconData getActivityIcon(String type) {
-    if (type == 'Walking') {
+  IconData getActivityIcon() {
+    if (activity.type == 'Walking') {
       return Icons.directions_walk;
-    } else if (type == 'Running') {
+    } else if (activity.type == 'Running') {
       return Icons.directions_run;
-    } else if (type == 'Cycling') {
+    } else if (activity.type == 'Cycling') {
       return Icons.pedal_bike;
     } else {
       return Icons.fitness_center;
@@ -25,19 +25,14 @@ class ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        contentPadding: const EdgeInsets.all(14),
+        contentPadding: const EdgeInsets.all(12),
         leading: CircleAvatar(
-          radius: 24,
           backgroundColor: const Color(0xFFE8FBF8),
           child: Icon(
-            getActivityIcon(activity.type),
+            getActivityIcon(),
             color: const Color(0xFF20D6C7),
           ),
         ),
@@ -45,23 +40,21 @@ class ActivityCard extends StatelessWidget {
           activity.title,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 16,
           ),
         ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Type: ${activity.type}'),
-              Text('Duration: ${activity.duration} min'),
-              Text('Calories: ${activity.calories}'),
-              Text('Steps: ${activity.steps}'),
-              Text('Distance: ${activity.distance} km'),
-              Text('Location: ${activity.location}'),
-              if (activity.notes.isNotEmpty) Text('Notes: ${activity.notes}'),
-            ],
-          ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 6),
+            Text('Type: ${activity.type}'),
+            Text('Duration: ${activity.duration} min'),
+            Text('Calories: ${activity.calories}'),
+            Text('Steps: ${activity.steps}'),
+            Text('Distance: ${activity.distance} km'),
+            Text('Location: ${activity.location}'),
+            // show notes only if user entered something
+            if (activity.notes.isNotEmpty) Text('Notes: ${activity.notes}'),
+          ],
         ),
         trailing: IconButton(
           onPressed: onDelete,

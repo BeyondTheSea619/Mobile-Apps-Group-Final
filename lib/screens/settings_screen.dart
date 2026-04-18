@@ -14,7 +14,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool reminderOn = false;
   bool soundOn = true;
-
   String selectedActivity = 'Walking';
 
   @override
@@ -26,12 +25,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
 
-    stepGoalController.text =
-        (prefs.getInt('step_goal') ?? 10000).toString();
-
-    waterGoalController.text =
-        (prefs.getDouble('water_goal') ?? 2.0).toString();
-
+    stepGoalController.text = (prefs.getInt('step_goal') ?? 10000).toString();
+    waterGoalController.text = (prefs.getDouble('water_goal') ?? 2.0).toString();
     reminderOn = prefs.getBool('reminder') ?? false;
     soundOn = prefs.getBool('sound_on') ?? true;
     selectedActivity = prefs.getString('preferred_activity') ?? 'Walking';
@@ -59,12 +54,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Settings saved successfully')),
+      const SnackBar(
+        content: Text('Settings saved'),
+      ),
     );
   }
 
-  Future<void> resetSettings() async {
+  Future<void> clearSettings() async {
     final prefs = await SharedPreferences.getInstance();
+
     await prefs.clear();
 
     stepGoalController.text = '10000';
@@ -75,39 +73,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {});
 
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Settings reset successfully')),
-    );
-  }
-
-  Widget buildSectionCard({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: child,
-    );
-  }
-
-  Widget buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required TextInputType keyboardType,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+      const SnackBar(
+        content: Text('Settings cleared'),
       ),
     );
   }
@@ -121,216 +91,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF20D6C7);
+    const Color primaryColor = Color(0xFF20D6C7);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: primaryColor,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Column(
-                children: [
-                  CircleAvatar(
-                    radius: 35,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.settings,
-                      size: 35,
-                      color: primaryColor,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'App Settings',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Manage your fitness app preferences',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+            TextField(
+              controller: stepGoalController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Daily Step Goal',
               ),
             ),
-
-            buildSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Goals',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  buildTextField(
-                    controller: stepGoalController,
-                    label: 'Daily Step Goal',
-                    icon: Icons.directions_walk,
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 14),
-                  buildTextField(
-                    controller: waterGoalController,
-                    label: 'Daily Water Goal (L)',
-                    icon: Icons.water_drop,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 15),
+            TextField(
+              controller: waterGoalController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Daily Water Goal',
               ),
             ),
-
-            buildSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Preferences',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Enable Reminder'),
-                    subtitle: const Text('Get notified for your daily goals'),
-                    value: reminderOn,
-                    onChanged: (value) {
-                      setState(() {
-                        reminderOn = value;
-                      });
-                    },
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Notification Sound'),
-                    subtitle: const Text('Play sound for reminder notifications'),
-                    value: soundOn,
-                    onChanged: (value) {
-                      setState(() {
-                        soundOn = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: selectedActivity,
-                    decoration: InputDecoration(
-                      labelText: 'Preferred Activity',
-                      prefixIcon: const Icon(Icons.fitness_center),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Walking',
-                        child: Text('Walking'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Running',
-                        child: Text('Running'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Cycling',
-                        child: Text('Cycling'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Workout',
-                        child: Text('Workout'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        selectedActivity = value!;
-                      });
-                    },
-                  ),
-                ],
-              ),
+            const SizedBox(height: 15),
+            SwitchListTile(
+              title: const Text('Enable Reminder'),
+              value: reminderOn,
+              onChanged: (value) {
+                setState(() {
+                  reminderOn = value;
+                });
+              },
             ),
-
-            buildSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Saved Summary',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFFE8FBF8),
-                      child: Icon(
-                        Icons.flag_outlined,
-                        color: primaryColor,
-                      ),
-                    ),
-                    title: const Text('Step Goal'),
-                    subtitle: Text('${stepGoalController.text} steps'),
-                  ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFFE8FBF8),
-                      child: Icon(
-                        Icons.water_drop,
-                        color: primaryColor,
-                      ),
-                    ),
-                    title: const Text('Water Goal'),
-                    subtitle: Text('${waterGoalController.text} L'),
-                  ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFFE8FBF8),
-                      child: Icon(
-                        Icons.favorite_border,
-                        color: primaryColor,
-                      ),
-                    ),
-                    title: const Text('Preferred Activity'),
-                    subtitle: Text(selectedActivity),
-                  ),
-                ],
-              ),
+            SwitchListTile(
+              title: const Text('Notification Sound'),
+              value: soundOn,
+              onChanged: (value) {
+                setState(() {
+                  soundOn = value;
+                });
+              },
             ),
-
             const SizedBox(height: 10),
-
+            DropdownButtonFormField<String>(
+              value: selectedActivity,
+              decoration: const InputDecoration(
+                labelText: 'Preferred Activity',
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'Walking',
+                  child: Text('Walking'),
+                ),
+                DropdownMenuItem(
+                  value: 'Running',
+                  child: Text('Running'),
+                ),
+                DropdownMenuItem(
+                  value: 'Cycling',
+                  child: Text('Cycling'),
+                ),
+                DropdownMenuItem(
+                  value: 'Workout',
+                  child: Text('Workout'),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  selectedActivity = value!;
+                });
+              },
+            ),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -338,28 +173,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
-                child: const Text(
-                  'Save Settings',
-                  style: TextStyle(fontSize: 16),
-                ),
+                child: const Text('Save'),
               ),
             ),
-
             const SizedBox(height: 10),
-
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: resetSettings,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                ),
-                child: const Text(
-                  'Reset Settings',
-                  style: TextStyle(fontSize: 16),
-                ),
+                onPressed: clearSettings,
+                child: const Text('Clear'),
               ),
             ),
           ],

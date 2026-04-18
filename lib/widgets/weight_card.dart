@@ -13,52 +13,40 @@ class WeightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const CircleAvatar(
-            radius: 24,
-            backgroundColor: Color(0xFFE8FBF8),
-            child: Icon(
-              Icons.monitor_weight,
-              color: Color(0xFF20D6C7),
-            ),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        leading: const CircleAvatar(
+          backgroundColor: Color(0xFFE8FBF8),
+          child: Icon(
+            Icons.monitor_weight,
+            color: Color(0xFF20D6C7),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${weightItem.weight} kg',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text('BMI: ${weightItem.bmi}'),
-                Text('Date: ${weightItem.weightDate.split(" ").first}'),
-                if (weightItem.note.isNotEmpty)
-                  Text('Note: ${weightItem.note}'),
-              ],
-            ),
+        ),
+        title: Text(
+          '${weightItem.weight} kg',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
           ),
-          IconButton(
-            onPressed: onDelete,
-            icon: const Icon(
-              Icons.delete,
-              color: Colors.red,
-            ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 6),
+            Text('BMI: ${weightItem.bmi}'),
+            Text('Date: ${weightItem.weightDate.split(' ').first}'),
+            // show note only when user enters it
+            if (weightItem.note.isNotEmpty) Text('Note: ${weightItem.note}'),
+          ],
+        ),
+        trailing: IconButton(
+          onPressed: onDelete,
+          icon: const Icon(
+            Icons.delete,
+            color: Colors.red,
           ),
-        ],
+        ),
       ),
     );
   }

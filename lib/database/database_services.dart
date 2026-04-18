@@ -8,101 +8,113 @@ class DatabaseServices {
   static Database? _database;
 
   static Future<Database> getDatabase() async {
-    if (_database != null) {
-      return _database!;
-    }
+    Directory dbDirectory = await getApplicationDocumentsDirectory();
+    String path = join(dbDirectory.path, 'fit_app.db');
 
-    Directory appDirectory = await getApplicationDocumentsDirectory();
-    String path = join(appDirectory.path, 'fit_app.db');
+    if (_database == null) {
+      try {
+        _database = await openDatabase(
+          path,
+          version: 1,
+          onCreate: (db, version) async {
+            await db.execute('''
+              CREATE TABLE users(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                age INTEGER NOT NULL,
+                gender TEXT NOT NULL,
+                height REAL NOT NULL,
+                weight REAL NOT NULL,
+                goalWeight REAL NOT NULL,
+                targetSteps INTEGER NOT NULL,
+                email TEXT NOT NULL,
+                profileImagePath TEXT
+              )
+            ''');
 
-    try {
-      _database = await openDatabase(
-        path,
-        version: 1,
-        onCreate: _onCreate,
-        onOpen: (db) {
-          print('Database opened');
-        },
-      );
-    } catch (e) {
-      print('Database error: $e');
-      rethrow;
+            await db.execute('''
+              CREATE TABLE activities(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                type TEXT NOT NULL,
+                duration INTEGER NOT NULL,
+                calories REAL NOT NULL,
+                steps INTEGER NOT NULL,
+                distance REAL NOT NULL,
+                activityDate TEXT NOT NULL,
+                location TEXT,
+                notes TEXT
+              )
+            ''');
+
+            await db.execute('''
+              CREATE TABLE weights(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                weight REAL NOT NULL,
+                bmi REAL NOT NULL,
+                note TEXT,
+                weightDate TEXT NOT NULL,
+                photoPath TEXT
+              )
+            ''');
+
+            print('Database created');
+          },
+          onOpen: (db) {
+            print('Database opened');
+          },
+        );
+      } catch (e) {
+        print("Database error: $e");
+        exit(0);
+      }
     }
 
     return _database!;
   }
 
-  static Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        age INTEGER NOT NULL,
-        gender TEXT NOT NULL,
-        height REAL NOT NULL,
-        weight REAL NOT NULL,
-        goalWeight REAL NOT NULL,
-        targetSteps INTEGER NOT NULL,
-        email TEXT NOT NULL,
-        profileImagePath TEXT
-      )
-    ''');
+  // user table
 
-    await db.execute('''
-      CREATE TABLE activities(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        type TEXT NOT NULL,
-        duration INTEGER NOT NULL,
-        calories REAL NOT NULL,
-        steps INTEGER NOT NULL,
-        distance REAL NOT NULL,
-        activityDate TEXT NOT NULL,
-        location TEXT,
-        notes TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE weights(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        weight REAL NOT NULL,
-        bmi REAL NOT NULL,
-        note TEXT,
-        weightDate TEXT NOT NULL,
-        photoPath TEXT
-      )
-    ''');
-
-    print('Database and tables created');
-  }
-
-  // ---------------- USER METHODS ----------------
-
-  static Future<int> insertUser(Map<String, dynamic> userData) async {
+  static Future<int> insertUser(Map<String, dynamic> user) async {
     try {
-      final db = await getDatabase();
-      return await db.insert('users', userData);
+      Database db = await getDatabase();
+      return await db.insert('users', user);
     } catch (e) {
-      print('insertUser error: $e');
+      print('Error inserting user: $e');
       return -1;
     }
   }
 
   static Future<List<Map<String, dynamic>>> getAllUsers() async {
     try {
-      final db = await getDatabase();
+      Database db = await getDatabase();
       return await db.query('users');
     } catch (e) {
-      print('getAllUsers error: $e');
+      print('Error getting users: $e');
       return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getFirstUser() async {
+    try {
+      Database db = await getDatabase();
+      var result = await db.query('users', limit: 1);
+
+      if (result.isNotEmpty) {
+        return result.first;
+      }
+
+      return null;
+    } catch (e) {
+      print('Error getting first user: $e');
+      return null;
     }
   }
 
   static Future<Map<String, dynamic>?> getUserById(int id) async {
     try {
-      final db = await getDatabase();
-      final result = await db.query(
+      Database db = await getDatabase();
+      var result = await db.query(
         'users',
         where: 'id = ?',
         whereArgs: [id],
@@ -114,88 +126,69 @@ class DatabaseServices {
 
       return null;
     } catch (e) {
-      print('getUserById error: $e');
+      print('Error getting user by id: $e');
       return null;
     }
   }
 
-  static Future<Map<String, dynamic>?> getFirstUser() async {
+  static Future<int> updateUser(Map<String, dynamic> user) async {
     try {
-      final db = await getDatabase();
-      final result = await db.query('users', limit: 1);
-
-      if (result.isNotEmpty) {
-        return result.first;
-      }
-
-      return null;
-    } catch (e) {
-      print('getFirstUser error: $e');
-      return null;
-    }
-  }
-
-  static Future<int> updateUser(Map<String, dynamic> userData) async {
-    try {
-      final db = await getDatabase();
+      Database db = await getDatabase();
       return await db.update(
         'users',
-        userData,
+        user,
         where: 'id = ?',
-        whereArgs: [userData['id']],
+        whereArgs: [user['id']],
       );
     } catch (e) {
-      print('updateUser error: $e');
+      print('Error updating user: $e');
       return 0;
     }
   }
 
   static Future<int> deleteUser(int id) async {
     try {
-      final db = await getDatabase();
+      Database db = await getDatabase();
       return await db.delete(
         'users',
         where: 'id = ?',
         whereArgs: [id],
       );
     } catch (e) {
-      print('deleteUser error: $e');
+      print('Error deleting user: $e');
       return 0;
     }
   }
 
-  // ---------------- ACTIVITY METHODS ----------------
+  // activity table
 
-  static Future<int> insertActivity(Map<String, dynamic> activityData) async {
+  static Future<int> insertActivity(Map<String, dynamic> activity) async {
     try {
-      final db = await getDatabase();
-
-      return await db.transaction((tx) async {
-        return await tx.insert('activities', activityData);
-      });
+      Database db = await getDatabase();
+      return await db.insert('activities', activity);
     } catch (e) {
-      print('insertActivity error: $e');
+      print('Error inserting activity: $e');
       return -1;
     }
   }
 
   static Future<List<Map<String, dynamic>>> getAllActivities() async {
     try {
-      final db = await getDatabase();
+      Database db = await getDatabase();
       return await db.query(
         'activities',
         orderBy: 'activityDate DESC',
       );
     } catch (e) {
-      print('getAllActivities error: $e');
+      print('Error getting activities: $e');
       return [];
     }
   }
 
   static Future<Map<String, dynamic>?> getActivityById(int id) async {
     try {
-      final db = await getDatabase();
-      final result = await db.query(
+      Database db = await getDatabase();
+      var result = await db.query(
         'activities',
         where: 'id = ?',
         whereArgs: [id],
@@ -207,72 +200,69 @@ class DatabaseServices {
 
       return null;
     } catch (e) {
-      print('getActivityById error: $e');
+      print('Error getting activity by id: $e');
       return null;
     }
   }
 
-  static Future<int> updateActivity(Map<String, dynamic> activityData) async {
+  static Future<int> updateActivity(Map<String, dynamic> activity) async {
     try {
-      final db = await getDatabase();
+      Database db = await getDatabase();
       return await db.update(
         'activities',
-        activityData,
+        activity,
         where: 'id = ?',
-        whereArgs: [activityData['id']],
+        whereArgs: [activity['id']],
       );
     } catch (e) {
-      print('updateActivity error: $e');
+      print('Error updating activity: $e');
       return 0;
     }
   }
 
   static Future<int> deleteActivity(int id) async {
     try {
-      final db = await getDatabase();
+      Database db = await getDatabase();
       return await db.delete(
         'activities',
         where: 'id = ?',
         whereArgs: [id],
       );
     } catch (e) {
-      print('deleteActivity error: $e');
+      print('Error deleting activity: $e');
       return 0;
     }
   }
 
-  // ---------------- WEIGHT METHODS ----------------
+  // weight table
 
-  static Future<int> insertWeight(Map<String, dynamic> weightData) async {
+  static Future<int> insertWeight(Map<String, dynamic> weight) async {
     try {
-      final db = await getDatabase();
-
-      return await db.transaction((tx) async {
-        return await tx.insert('weights', weightData);
-      });
+      Database db = await getDatabase();
+      return await db.insert('weights', weight);
     } catch (e) {
-      print('insertWeight error: $e');
+      print('Error inserting weight: $e');
       return -1;
     }
   }
 
   static Future<List<Map<String, dynamic>>> getAllWeights() async {
     try {
-      final db = await getDatabase();
+      Database db = await getDatabase();
       return await db.query(
         'weights',
         orderBy: 'weightDate DESC',
       );
     } catch (e) {
-      print('getAllWeights error: $e');
+      print('Error getting weights: $e');
       return [];
     }
   }
 
   static Future<Map<String, dynamic>?> getWeightById(int id) async {
     try {
-      final db = await getDatabase();
-      final result = await db.query(
+      Database db = await getDatabase();
+      var result = await db.query(
         'weights',
         where: 'id = ?',
         whereArgs: [id],
@@ -284,49 +274,37 @@ class DatabaseServices {
 
       return null;
     } catch (e) {
-      print('getWeightById error: $e');
+      print('Error getting weight by id: $e');
       return null;
     }
   }
 
-  static Future<int> updateWeight(Map<String, dynamic> weightData) async {
+  static Future<int> updateWeight(Map<String, dynamic> weight) async {
     try {
-      final db = await getDatabase();
+      Database db = await getDatabase();
       return await db.update(
         'weights',
-        weightData,
+        weight,
         where: 'id = ?',
-        whereArgs: [weightData['id']],
+        whereArgs: [weight['id']],
       );
     } catch (e) {
-      print('updateWeight error: $e');
+      print('Error updating weight: $e');
       return 0;
     }
   }
 
   static Future<int> deleteWeight(int id) async {
     try {
-      final db = await getDatabase();
+      Database db = await getDatabase();
       return await db.delete(
         'weights',
         where: 'id = ?',
         whereArgs: [id],
       );
     } catch (e) {
-      print('deleteWeight error: $e');
+      print('Error deleting weight: $e');
       return 0;
-    }
-  }
-
-  // ---------------- EXTRA HELPERS ----------------
-
-  static Future<void> clearTable(String tableName) async {
-    try {
-      final db = await getDatabase();
-      await db.delete(tableName);
-      print('$tableName cleared');
-    } catch (e) {
-      print('clearTable error: $e');
     }
   }
 
