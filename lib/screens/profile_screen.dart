@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:reactive_forms/reactive_forms.dart';
 
 import '../database/database_services.dart';
 import '../models/user.dart';
@@ -13,17 +14,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  late FormGroup form;
 
-  final nameController = TextEditingController();
-  final ageController = TextEditingController();
-  final heightController = TextEditingController();
-  final weightController = TextEditingController();
-  final goalWeightController = TextEditingController();
-  final targetStepsController = TextEditingController();
-  final emailController = TextEditingController();
-
-  String selectedGender = 'Male';
   String profileImagePath = '';
   int? userId;
   bool isLoading = true;
@@ -31,6 +23,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    form = fb.group({
+      'name': FormControl<String>(validators: [Validators.required]),
+      'age': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'gender': FormControl<String>(value: 'Male', validators: [Validators.required]),
+      'height': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'weight': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'goalWeight': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'targetSteps': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'email': FormControl<String>(validators: [Validators.required, Validators.email]),
+    });
     loadProfile();
   }
 
@@ -41,14 +43,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       User user = User.fromMap(data);
 
       userId = user.id;
-      nameController.text = user.name;
-      ageController.text = user.age.toString();
-      heightController.text = user.height.toString();
-      weightController.text = user.weight.toString();
-      goalWeightController.text = user.goalWeight.toString();
-      targetStepsController.text = user.targetSteps.toString();
-      emailController.text = user.email;
-      selectedGender = user.gender;
+      
+      form.patchValue({
+        'name': user.name,
+        'age': user.age.toString(),
+        'gender': user.gender,
+        'height': user.height.toString(),
+        'weight': user.weight.toString(),
+        'goalWeight': user.goalWeight.toString(),
+        'targetSteps': user.targetSteps.toString(),
+        'email': user.email,
+      });
+      
       profileImagePath = user.profileImagePath;
     }
 
@@ -73,20 +79,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> saveProfile() async {
-    if (!formKey.currentState!.validate()) {
+    if (!form.valid) {
+      form.markAllAsTouched();
       return;
     }
 
     User user = User(
       id: userId,
-      name: nameController.text.trim(),
-      age: int.parse(ageController.text.trim()),
-      gender: selectedGender,
-      height: double.parse(heightController.text.trim()),
-      weight: double.parse(weightController.text.trim()),
-      goalWeight: double.parse(goalWeightController.text.trim()),
-      targetSteps: int.parse(targetStepsController.text.trim()),
-      email: emailController.text.trim(),
+      name: form.control('name').value.toString().trim(),
+      age: int.parse(form.control('age').value.toString().trim()),
+      gender: form.control('gender').value.toString(),
+      height: double.parse(form.control('height').value.toString().trim()),
+      weight: double.parse(form.control('weight').value.toString().trim()),
+      goalWeight: double.parse(form.control('goalWeight').value.toString().trim()),
+      targetSteps: int.parse(form.control('targetSteps').value.toString().trim()),
+      email: form.control('email').value.toString().trim(),
       profileImagePath: profileImagePath,
     );
 
@@ -116,34 +123,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void clearForm() {
-    nameController.clear();
-    ageController.clear();
-    heightController.clear();
-    weightController.clear();
-    goalWeightController.clear();
-    targetStepsController.clear();
-    emailController.clear();
-
-    selectedGender = 'Male';
+    form.reset(value: {
+      'gender': 'Male',
+    });
     profileImagePath = '';
     userId = null;
-
     setState(() {});
   }
 
   Widget buildField({
-    required TextEditingController controller,
+    required String formControlName,
     required String label,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
+    Map<String, String Function(Object)>? validationMessages,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
-      child: TextFormField(
-        controller: controller,
+      child: ReactiveTextField<String>(
+        formControlName: formControlName,
         keyboardType: keyboardType,
-        validator: validator,
+        validationMessages: validationMessages,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon),
@@ -158,22 +158,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
-  void dispose() {
-    nameController.dispose();
-    ageController.dispose();
-    heightController.dispose();
-    weightController.dispose();
-    goalWeightController.dispose();
-    targetStepsController.dispose();
-    emailController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    String profileTitle = nameController.text.isEmpty
+    String currentName = form.control('name').value?.toString() ?? '';
+    String profileTitle = currentName.isEmpty
         ? 'My Profile'
-        : nameController.text;
+        : currentName;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
@@ -234,34 +223,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  Form(
-                    key: formKey,
+                  ReactiveForm(
+                    formGroup: form,
                     child: Column(
                       children: [
                         buildField(
-                          controller: nameController,
+                          formControlName: 'name',
                           label: 'Full Name',
                           icon: Icons.person,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Name is required';
-                            }
-                            return null;
+                          validationMessages: {
+                            ValidationMessage.required: (error) => 'Name is required',
                           },
                         ),
                         buildField(
-                          controller: ageController,
+                          formControlName: 'age',
                           label: 'Age',
                           icon: Icons.cake,
                           keyboardType: TextInputType.number,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Age is required';
-                            }
-                            if (int.tryParse(value.trim()) == null) {
-                              return 'Enter valid age';
-                            }
-                            return null;
+                          validationMessages: {
+                            ValidationMessage.required: (error) => 'Age is required',
+                            ValidationMessage.number: (error) => 'Enter valid age',
                           },
                         ),
                         Container(
@@ -271,8 +252,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: DropdownButtonFormField<String>(
-                            value: selectedGender,
+                          child: ReactiveDropdownField<String>(
+                            formControlName: 'gender',
                             decoration: const InputDecoration(
                               border: InputBorder.none,
                               labelText: 'Gender',
@@ -292,86 +273,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: Text('Other'),
                               ),
                             ],
-                            onChanged: (value) {
-                              setState(() {
-                                selectedGender = value!;
-                              });
-                            },
                           ),
                         ),
                         buildField(
-                          controller: heightController,
+                          formControlName: 'height',
                           label: 'Height (cm)',
                           icon: Icons.height,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Height is required';
-                            }
-                            if (double.tryParse(value.trim()) == null) {
-                              return 'Enter valid height';
-                            }
-                            return null;
+                          validationMessages: {
+                            ValidationMessage.required: (error) => 'Height is required',
+                            ValidationMessage.number: (error) => 'Enter valid height',
                           },
                         ),
                         buildField(
-                          controller: weightController,
+                          formControlName: 'weight',
                           label: 'Current Weight (kg)',
                           icon: Icons.monitor_weight,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Weight is required';
-                            }
-                            if (double.tryParse(value.trim()) == null) {
-                              return 'Enter valid weight';
-                            }
-                            return null;
+                          validationMessages: {
+                            ValidationMessage.required: (error) => 'Weight is required',
+                            ValidationMessage.number: (error) => 'Enter valid weight',
                           },
                         ),
                         buildField(
-                          controller: goalWeightController,
+                          formControlName: 'goalWeight',
                           label: 'Goal Weight (kg)',
                           icon: Icons.flag,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Goal weight is required';
-                            }
-                            if (double.tryParse(value.trim()) == null) {
-                              return 'Enter valid goal weight';
-                            }
-                            return null;
+                          validationMessages: {
+                            ValidationMessage.required: (error) => 'Goal weight is required',
+                            ValidationMessage.number: (error) => 'Enter valid goal weight',
                           },
                         ),
                         buildField(
-                          controller: targetStepsController,
+                          formControlName: 'targetSteps',
                           label: 'Target Steps',
                           icon: Icons.directions_walk,
                           keyboardType: TextInputType.number,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Target steps is required';
-                            }
-                            if (int.tryParse(value.trim()) == null) {
-                              return 'Enter valid target steps';
-                            }
-                            return null;
+                          validationMessages: {
+                            ValidationMessage.required: (error) => 'Target steps is required',
+                            ValidationMessage.number: (error) => 'Enter valid target steps',
                           },
                         ),
                         buildField(
-                          controller: emailController,
+                          formControlName: 'email',
                           label: 'Email',
                           icon: Icons.email,
                           keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Email is required';
-                            }
-                            if (!value.contains('@') || !value.contains('.')) {
-                              return 'Enter valid email';
-                            }
-                            return null;
+                          validationMessages: {
+                            ValidationMessage.required: (error) => 'Email is required',
+                            ValidationMessage.email: (error) => 'Enter valid email',
                           },
                         ),
                         SizedBox(

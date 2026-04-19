@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:reactive_forms/reactive_forms.dart';
 
 import '../database/database_services.dart';
 import '../models/activity.dart';
@@ -11,30 +12,35 @@ class AddActivityScreen extends StatefulWidget {
 }
 
 class _AddActivityScreenState extends State<AddActivityScreen> {
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  late FormGroup form;
 
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController durationController = TextEditingController();
-  final TextEditingController caloriesController = TextEditingController();
-  final TextEditingController stepsController = TextEditingController();
-  final TextEditingController distanceController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
-  final TextEditingController notesController = TextEditingController();
-
-  String selectedType = 'Walking';
+  @override
+  void initState() {
+    super.initState();
+    form = fb.group({
+      'title': FormControl<String>(validators: [Validators.required]),
+      'type': FormControl<String>(value: 'Walking', validators: [Validators.required]),
+      'duration': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'calories': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'steps': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'distance': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'location': FormControl<String>(validators: [Validators.required]),
+      'notes': FormControl<String>(),
+    });
+  }
 
   Future<void> saveActivity() async {
-    if (formKey.currentState!.validate()) {
+    if (form.valid) {
       Activity activity = Activity(
-        title: titleController.text.trim(),
-        type: selectedType,
-        duration: int.parse(durationController.text.trim()),
-        calories: double.parse(caloriesController.text.trim()),
-        steps: int.parse(stepsController.text.trim()),
-        distance: double.parse(distanceController.text.trim()),
+        title: form.control('title').value.toString().trim(),
+        type: form.control('type').value.toString(),
+        duration: int.parse(form.control('duration').value.toString().trim()),
+        calories: double.parse(form.control('calories').value.toString().trim()),
+        steps: int.parse(form.control('steps').value.toString().trim()),
+        distance: double.parse(form.control('distance').value.toString().trim()),
         activityDate: DateTime.now().toString(),
-        location: locationController.text.trim(),
-        notes: notesController.text.trim(),
+        location: form.control('location').value.toString().trim(),
+        notes: (form.control('notes').value ?? '').toString().trim(),
       );
 
       int result = await DatabaseServices.insertActivity(activity.toMap());
@@ -56,19 +62,9 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
           ),
         );
       }
+    } else {
+      form.markAllAsTouched();
     }
-  }
-
-  @override
-  void dispose() {
-    titleController.dispose();
-    durationController.dispose();
-    caloriesController.dispose();
-    stepsController.dispose();
-    distanceController.dispose();
-    locationController.dispose();
-    notesController.dispose();
-    super.dispose();
   }
 
   @override
@@ -123,12 +119,12 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                 ],
               ),
             ),
-            Form(
-              key: formKey,
+            ReactiveForm(
+              formGroup: form,
               child: Column(
                 children: [
-                  TextFormField(
-                    controller: titleController,
+                  ReactiveTextField<String>(
+                    formControlName: 'title',
                     decoration: InputDecoration(
                       labelText: 'Activity Title',
                       prefixIcon: const Icon(Icons.title),
@@ -138,11 +134,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Activity title is required';
-                      }
-                      return null;
+                    validationMessages: {
+                      ValidationMessage.required: (error) => 'Activity title is required',
                     },
                   ),
                   const SizedBox(height: 15),
@@ -153,8 +146,8 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: DropdownButtonFormField<String>(
-                      value: selectedType,
+                    child: ReactiveDropdownField<String>(
+                      formControlName: 'type',
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         labelText: 'Activity Type',
@@ -178,17 +171,12 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                           child: Text('Workout'),
                         ),
                       ],
-                      onChanged: (value) {
-                        setState(() {
-                          selectedType = value!;
-                        });
-                      },
                     ),
                   ),
                   const SizedBox(height: 15),
 
-                  TextFormField(
-                    controller: durationController,
+                  ReactiveTextField<String>(
+                    formControlName: 'duration',
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: 'Duration (minutes)',
@@ -199,20 +187,15 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Duration is required';
-                      }
-                      if (int.tryParse(value.trim()) == null) {
-                        return 'Enter valid duration';
-                      }
-                      return null;
+                    validationMessages: {
+                      ValidationMessage.required: (error) => 'Duration is required',
+                      ValidationMessage.number: (error) => 'Enter valid duration',
                     },
                   ),
                   const SizedBox(height: 15),
 
-                  TextFormField(
-                    controller: caloriesController,
+                  ReactiveTextField<String>(
+                    formControlName: 'calories',
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: InputDecoration(
                       labelText: 'Calories Burned',
@@ -223,20 +206,15 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Calories is required';
-                      }
-                      if (double.tryParse(value.trim()) == null) {
-                        return 'Enter valid calories';
-                      }
-                      return null;
+                    validationMessages: {
+                      ValidationMessage.required: (error) => 'Calories is required',
+                      ValidationMessage.number: (error) => 'Enter valid calories',
                     },
                   ),
                   const SizedBox(height: 15),
 
-                  TextFormField(
-                    controller: stepsController,
+                  ReactiveTextField<String>(
+                    formControlName: 'steps',
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: 'Steps',
@@ -247,20 +225,15 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Steps is required';
-                      }
-                      if (int.tryParse(value.trim()) == null) {
-                        return 'Enter valid steps';
-                      }
-                      return null;
+                    validationMessages: {
+                      ValidationMessage.required: (error) => 'Steps is required',
+                      ValidationMessage.number: (error) => 'Enter valid steps',
                     },
                   ),
                   const SizedBox(height: 15),
 
-                  TextFormField(
-                    controller: distanceController,
+                  ReactiveTextField<String>(
+                    formControlName: 'distance',
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: InputDecoration(
                       labelText: 'Distance (km)',
@@ -271,20 +244,15 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Distance is required';
-                      }
-                      if (double.tryParse(value.trim()) == null) {
-                        return 'Enter valid distance';
-                      }
-                      return null;
+                    validationMessages: {
+                      ValidationMessage.required: (error) => 'Distance is required',
+                      ValidationMessage.number: (error) => 'Enter valid distance',
                     },
                   ),
                   const SizedBox(height: 15),
 
-                  TextFormField(
-                    controller: locationController,
+                  ReactiveTextField<String>(
+                    formControlName: 'location',
                     decoration: InputDecoration(
                       labelText: 'Location',
                       prefixIcon: const Icon(Icons.location_on),
@@ -294,18 +262,14 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Location is required';
-                      }
-                      return null;
+                    validationMessages: {
+                      ValidationMessage.required: (error) => 'Location is required',
                     },
                   ),
                   const SizedBox(height: 15),
 
-                  // notes can be optional
-                  TextFormField(
-                    controller: notesController,
+                  ReactiveTextField<String>(
+                    formControlName: 'notes',
                     maxLines: 3,
                     decoration: InputDecoration(
                       labelText: 'Notes',

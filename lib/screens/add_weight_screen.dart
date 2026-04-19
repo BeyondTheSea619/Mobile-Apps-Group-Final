@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:reactive_forms/reactive_forms.dart';
 
 import '../database/database_services.dart';
 import '../models/weight.dart';
@@ -11,18 +12,28 @@ class AddWeightScreen extends StatefulWidget {
 }
 
 class _AddWeightScreenState extends State<AddWeightScreen> {
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  late FormGroup form;
 
-  final TextEditingController weightController = TextEditingController();
-  final TextEditingController bmiController = TextEditingController();
-  final TextEditingController noteController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    form = fb.group({
+      'weight': FormControl<String>(
+        validators: [Validators.required, Validators.number],
+      ),
+      'bmi': FormControl<String>(
+        validators: [Validators.required, Validators.number],
+      ),
+      'note': FormControl<String>(),
+    });
+  }
 
   Future<void> saveWeight() async {
-    if (formKey.currentState!.validate()) {
+    if (form.valid) {
       Weight weight = Weight(
-        weight: double.parse(weightController.text.trim()),
-        bmi: double.parse(bmiController.text.trim()),
-        note: noteController.text.trim(),
+        weight: double.parse(form.control('weight').value.toString().trim()),
+        bmi: double.parse(form.control('bmi').value.toString().trim()),
+        note: (form.control('note').value ?? '').toString().trim(),
         weightDate: DateTime.now().toString(),
         photoPath: '',
       );
@@ -46,15 +57,9 @@ class _AddWeightScreenState extends State<AddWeightScreen> {
           ),
         );
       }
+    } else {
+      form.markAllAsTouched();
     }
-  }
-
-  @override
-  void dispose() {
-    weightController.dispose();
-    bmiController.dispose();
-    noteController.dispose();
-    super.dispose();
   }
 
   @override
@@ -109,12 +114,12 @@ class _AddWeightScreenState extends State<AddWeightScreen> {
                 ],
               ),
             ),
-            Form(
-              key: formKey,
+            ReactiveForm(
+              formGroup: form,
               child: Column(
                 children: [
-                  TextFormField(
-                    controller: weightController,
+                  ReactiveTextField<String>(
+                    formControlName: 'weight',
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -127,20 +132,15 @@ class _AddWeightScreenState extends State<AddWeightScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Weight is required';
-                      }
-                      if (double.tryParse(value.trim()) == null) {
-                        return 'Enter valid weight';
-                      }
-                      return null;
+                    validationMessages: {
+                      ValidationMessage.required: (error) => 'Weight is required',
+                      ValidationMessage.number: (error) => 'Enter valid weight',
                     },
                   ),
                   const SizedBox(height: 15),
 
-                  TextFormField(
-                    controller: bmiController,
+                  ReactiveTextField<String>(
+                    formControlName: 'bmi',
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -153,21 +153,15 @@ class _AddWeightScreenState extends State<AddWeightScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'BMI is required';
-                      }
-                      if (double.tryParse(value.trim()) == null) {
-                        return 'Enter valid BMI';
-                      }
-                      return null;
+                    validationMessages: {
+                      ValidationMessage.required: (error) => 'BMI is required',
+                      ValidationMessage.number: (error) => 'Enter valid BMI',
                     },
                   ),
                   const SizedBox(height: 15),
 
-                  // note can be left empty
-                  TextFormField(
-                    controller: noteController,
+                  ReactiveTextField<String>(
+                    formControlName: 'note',
                     maxLines: 3,
                     decoration: InputDecoration(
                       labelText: 'Note',

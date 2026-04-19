@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:reactive_forms/reactive_forms.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -9,47 +10,59 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final TextEditingController stepGoalController = TextEditingController();
-  final TextEditingController waterGoalController = TextEditingController();
-
-  bool reminderOn = false;
-  bool soundOn = true;
-  String selectedActivity = 'Walking';
+  late FormGroup form;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    form = fb.group({
+      'stepGoal': FormControl<String>(value: '10000', validators: [Validators.required, Validators.number]),
+      'waterGoal': FormControl<String>(value: '2.0', validators: [Validators.required, Validators.number]),
+      'reminder': FormControl<bool>(value: false),
+      'soundOn': FormControl<bool>(value: true),
+      'preferredActivity': FormControl<String>(value: 'Walking', validators: [Validators.required]),
+    });
     loadSettings();
   }
 
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
 
-    stepGoalController.text = (prefs.getInt('step_goal') ?? 10000).toString();
-    waterGoalController.text = (prefs.getDouble('water_goal') ?? 2.0).toString();
-    reminderOn = prefs.getBool('reminder') ?? false;
-    soundOn = prefs.getBool('sound_on') ?? true;
-    selectedActivity = prefs.getString('preferred_activity') ?? 'Walking';
+    form.patchValue({
+      'stepGoal': (prefs.getInt('step_goal') ?? 10000).toString(),
+      'waterGoal': (prefs.getDouble('water_goal') ?? 2.0).toString(),
+      'reminder': prefs.getBool('reminder') ?? false,
+      'soundOn': prefs.getBool('sound_on') ?? true,
+      'preferredActivity': prefs.getString('preferred_activity') ?? 'Walking',
+    });
 
-    setState(() {});
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> saveSettings() async {
+    if (!form.valid) {
+      form.markAllAsTouched();
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.setInt(
       'step_goal',
-      int.tryParse(stepGoalController.text.trim()) ?? 10000,
+      int.parse(form.control('stepGoal').value.toString()),
     );
 
     await prefs.setDouble(
       'water_goal',
-      double.tryParse(waterGoalController.text.trim()) ?? 2.0,
+      double.parse(form.control('waterGoal').value.toString()),
     );
 
-    await prefs.setBool('reminder', reminderOn);
-    await prefs.setBool('sound_on', soundOn);
-    await prefs.setString('preferred_activity', selectedActivity);
+    await prefs.setBool('reminder', form.control('reminder').value as bool);
+    await prefs.setBool('sound_on', form.control('soundOn').value as bool);
+    await prefs.setString('preferred_activity', form.control('preferredActivity').value.toString());
 
     if (!mounted) return;
 
@@ -65,13 +78,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     await prefs.clear();
 
-    stepGoalController.text = '10000';
-    waterGoalController.text = '2.0';
-    reminderOn = false;
-    soundOn = true;
-    selectedActivity = 'Walking';
-
-    setState(() {});
+    form.reset(value: {
+      'stepGoal': '10000',
+      'waterGoal': '2.0',
+      'reminder': false,
+      'soundOn': true,
+      'preferredActivity': 'Walking',
+    });
 
     if (!mounted) return;
 
@@ -83,13 +96,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   @override
-  void dispose() {
-    stepGoalController.dispose();
-    waterGoalController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF20D6C7);
 
@@ -97,97 +103,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         title: const Text('Settings'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: stepGoalController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Daily Step Goal',
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: ReactiveForm(
+                formGroup: form,
+                child: Column(
+                  children: [
+                    ReactiveTextField<String>(
+                      formControlName: 'stepGoal',
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Daily Step Goal',
+                      ),
+                      validationMessages: {
+                        ValidationMessage.required: (error) => 'Step goal is required',
+                        ValidationMessage.number: (error) => 'Enter valid number',
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    ReactiveTextField<String>(
+                      formControlName: 'waterGoal',
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Daily Water Goal',
+                      ),
+                      validationMessages: {
+                        ValidationMessage.required: (error) => 'Water goal is required',
+                        ValidationMessage.number: (error) => 'Enter valid number',
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    ReactiveSwitchListTile(
+                      formControlName: 'reminder',
+                      title: const Text('Enable Reminder'),
+                    ),
+                    ReactiveSwitchListTile(
+                      formControlName: 'soundOn',
+                      title: const Text('Notification Sound'),
+                    ),
+                    const SizedBox(height: 10),
+                    ReactiveDropdownField<String>(
+                      formControlName: 'preferredActivity',
+                      decoration: const InputDecoration(
+                        labelText: 'Preferred Activity',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Walking',
+                          child: Text('Walking'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Running',
+                          child: Text('Running'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Cycling',
+                          child: Text('Cycling'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Workout',
+                          child: Text('Workout'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: saveSettings,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Save'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: clearSettings,
+                        child: const Text('Clear'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: waterGoalController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Daily Water Goal',
-              ),
-            ),
-            const SizedBox(height: 15),
-            SwitchListTile(
-              title: const Text('Enable Reminder'),
-              value: reminderOn,
-              onChanged: (value) {
-                setState(() {
-                  reminderOn = value;
-                });
-              },
-            ),
-            SwitchListTile(
-              title: const Text('Notification Sound'),
-              value: soundOn,
-              onChanged: (value) {
-                setState(() {
-                  soundOn = value;
-                });
-              },
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              value: selectedActivity,
-              decoration: const InputDecoration(
-                labelText: 'Preferred Activity',
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'Walking',
-                  child: Text('Walking'),
-                ),
-                DropdownMenuItem(
-                  value: 'Running',
-                  child: Text('Running'),
-                ),
-                DropdownMenuItem(
-                  value: 'Cycling',
-                  child: Text('Cycling'),
-                ),
-                DropdownMenuItem(
-                  value: 'Workout',
-                  child: Text('Workout'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  selectedActivity = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: saveSettings,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Save'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: clearSettings,
-                child: const Text('Clear'),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
