@@ -12,22 +12,25 @@ class AddWeightScreen extends StatefulWidget {
 }
 
 class _AddWeightScreenState extends State<AddWeightScreen> {
-  late FormGroup form;
+  late FormGroup form; // reactive form group to manage weight input fields
 
   @override
   void initState() {
     super.initState();
+    // creating form with weight and bmi as required number fields
+    // note is optional so no validators on it
     form = fb.group({
       'weight': FormControl<String>(
-        validators: [Validators.required, Validators.number],
+        validators: [Validators.required, Validators.number()],
       ),
       'bmi': FormControl<String>(
-        validators: [Validators.required, Validators.number],
+        validators: [Validators.required, Validators.number()],
       ),
       'note': FormControl<String>(),
     });
   }
 
+  // saves weight record to the database if everything is filled properly
   Future<void> saveWeight() async {
     if (form.valid) {
       Weight weight = Weight(
@@ -58,6 +61,7 @@ class _AddWeightScreenState extends State<AddWeightScreen> {
         );
       }
     } else {
+      // showing validation errors if user missed something
       form.markAllAsTouched();
     }
   }

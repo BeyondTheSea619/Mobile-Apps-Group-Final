@@ -10,7 +10,7 @@ class WeightCard extends StatelessWidget {
     required this.weightItem,
     required this.onDelete,
   });
-
+// this is a reusable widget that can be used to display any data on the dashboard
   @override
   Widget build(BuildContext context) {
     return Card(

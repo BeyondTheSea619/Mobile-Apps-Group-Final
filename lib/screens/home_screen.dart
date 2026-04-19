@@ -17,7 +17,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool isLoading = true;
+  bool isLoading = true; // showing loader untill all the data is fetched
 
   User? currentUser;
   Weight? latestWeight;
@@ -36,6 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
     loadHomeData();
   }
 
+  // this function loads all the home screen data from database and preferences
+  // it gets user info, latest weight, and calculates todays activity stats
   Future<void> loadHomeData() async {
     setState(() {
       isLoading = true;
@@ -63,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     DateTime now = DateTime.now();
 
+    // looping through all activities and adding up only todays ones
     for (int i = 0; i < activityData.length; i++) {
       Activity activity = Activity.fromMap(activityData[i]);
       DateTime activityDate = DateTime.parse(activity.activityDate);
@@ -181,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
       weightText = '${currentUser!.weight} kg';
     }
 
+    // calculating progress for the step goal bar
     double progressValue = 0;
     if (dailyGoal > 0) {
       progressValue = todaySteps / dailyGoal;
@@ -465,6 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 20),
 
+                  // showing fitness details card with all the user preferences and goals
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(12),

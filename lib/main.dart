@@ -6,6 +6,9 @@ import 'screens/weight_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 
+// this is the main function where the app starts from
+// basically it just call runApp and pass the MyApp widget
+// without this function nothing will works because flutter needs entry point
 void main() {
   runApp(const MyApp());
 }
@@ -16,8 +19,9 @@ class MyApp extends StatelessWidget {
   @override // this is the build method of the stateless widget
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, // removing the debug banner from top right corner
       title: 'Fitness App',
+      // setting up the theme for whole app so all screens look consistence
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF7F8FA),
@@ -52,6 +56,8 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int selectedIndex = 0; // this index tells us which screen to display currently it is 0 so it will display the home screen
 
+  // this list holds all the screens that user can navigate between
+  // the index from bottom nav bar decides which one to show
   final List<Widget> screens = const [
     HomeScreen(),
     ActivityScreen(),
@@ -63,10 +69,11 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: screens[selectedIndex],
+      body: screens[selectedIndex], // displaying the screen based on which tab is selected
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
         onTap: (index) {
+          // when user tap on any tab we update the index and it rebuild the screen
           setState(() {
             selectedIndex = index;
           });

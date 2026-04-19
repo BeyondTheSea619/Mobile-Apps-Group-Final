@@ -15,7 +15,7 @@ class DashboardCard extends StatelessWidget {
     required this.icon,
     required this.color,
   });
-
+// this is a reusable widget that can be used to display any data on the dashboard
   @override
   Widget build(BuildContext context) {
     return Expanded(

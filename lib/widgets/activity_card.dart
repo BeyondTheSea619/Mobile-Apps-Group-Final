@@ -22,7 +22,7 @@ class ActivityCard extends StatelessWidget {
       return Icons.fitness_center;
     }
   }
-
+// this is a reusable widget that can be used to display any data on the dashboard
   @override
   Widget build(BuildContext context) {
     return Card(

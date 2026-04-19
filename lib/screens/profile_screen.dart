@@ -14,7 +14,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late FormGroup form;
+  late FormGroup form; // form group for all the profile fields using reactive forms
 
   String profileImagePath = '';
   int? userId;
@@ -23,19 +23,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // initializing all the form controls here
+    // each control has its own validators like required, number, email etc
     form = fb.group({
       'name': FormControl<String>(validators: [Validators.required]),
-      'age': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'age': FormControl<String>(validators: [Validators.required, Validators.number()]),
       'gender': FormControl<String>(value: 'Male', validators: [Validators.required]),
-      'height': FormControl<String>(validators: [Validators.required, Validators.number]),
-      'weight': FormControl<String>(validators: [Validators.required, Validators.number]),
-      'goalWeight': FormControl<String>(validators: [Validators.required, Validators.number]),
-      'targetSteps': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'height': FormControl<String>(validators: [Validators.required, Validators.number()]),
+      'weight': FormControl<String>(validators: [Validators.required, Validators.number()]),
+      'goalWeight': FormControl<String>(validators: [Validators.required, Validators.number()]),
+      'targetSteps': FormControl<String>(validators: [Validators.required, Validators.number()]),
       'email': FormControl<String>(validators: [Validators.required, Validators.email]),
     });
     loadProfile();
   }
 
+  // loading user profile from database and patching the values into form
   Future<void> loadProfile() async {
     final data = await DatabaseServices.getFirstUser();
 
@@ -44,6 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       userId = user.id;
       
+      // filling form fields with existing user data from the database
       form.patchValue({
         'name': user.name,
         'age': user.age.toString(),
@@ -78,6 +82,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // saving profile data - first checks if form is valid then creates user object
   Future<void> saveProfile() async {
     if (!form.valid) {
       form.markAllAsTouched();
@@ -99,6 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     int result = 0;
 
+    // if no user exist yet we insert new one, otherwise update the existing record
     if (userId == null) {
       result = await DatabaseServices.insertUser(user.toMap());
       if (result > 0) {
@@ -122,6 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // clears everything in the form and resets back to default values
   void clearForm() {
     form.reset(value: {
       'gender': 'Male',

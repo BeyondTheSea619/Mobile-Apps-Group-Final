@@ -10,8 +10,8 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  String imgPath = '';
-  CameraController? controller;
+  String imgPath = ''; // storing the path of captured photo here
+  CameraController? controller; // camera controller to manage the camera hardware
 
   @override
   void initState() {
@@ -19,6 +19,8 @@ class _CameraScreenState extends State<CameraScreen> {
     openCamera();
   }
 
+  // opening the camera and initializing it when screen loads
+  // using try catch incase camera is not available or something goes wrong
   Future<bool> openCamera() async {
     try {
       var cameras = await availableCameras();
@@ -41,6 +43,7 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  // takes a photo and saves the path so we can use it later
   Future<String> capturePhoto() async {
     try {
       var pic = await controller?.takePicture();
@@ -55,6 +58,8 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  // need to dispose the camera controller when we leave this screen
+  // otherwise it keeps running in background and waste resources
   @override
   void dispose() {
     controller?.dispose();

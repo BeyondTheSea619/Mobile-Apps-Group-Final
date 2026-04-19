@@ -10,15 +10,17 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late FormGroup form;
-  bool isLoading = true;
+  late FormGroup form; // reactive form for managing all setting fields
+  bool isLoading = true; // to show loading while we fetch saved settings
 
   @override
   void initState() {
     super.initState();
+    // setting up form with default values for step goal and water goal
+    // also adding boolean controls for the toggle switches
     form = fb.group({
-      'stepGoal': FormControl<String>(value: '10000', validators: [Validators.required, Validators.number]),
-      'waterGoal': FormControl<String>(value: '2.0', validators: [Validators.required, Validators.number]),
+      'stepGoal': FormControl<String>(value: '10000', validators: [Validators.required, Validators.number()]),
+      'waterGoal': FormControl<String>(value: '2.0', validators: [Validators.required, Validators.number()]),
       'reminder': FormControl<bool>(value: false),
       'soundOn': FormControl<bool>(value: true),
       'preferredActivity': FormControl<String>(value: 'Walking', validators: [Validators.required]),
@@ -26,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     loadSettings();
   }
 
+  // loading previously saved settings from shared preferences
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -42,6 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  // saving all the settings to shared preferences so they persist
   Future<void> saveSettings() async {
     if (!form.valid) {
       form.markAllAsTouched();
@@ -73,6 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // this resets everything back to the defaults and clears stored preferences
   Future<void> clearSettings() async {
     final prefs = await SharedPreferences.getInstance();
 

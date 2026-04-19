@@ -12,23 +12,26 @@ class AddActivityScreen extends StatefulWidget {
 }
 
 class _AddActivityScreenState extends State<AddActivityScreen> {
-  late FormGroup form;
+  late FormGroup form; // using reactive form group for handling all the fields
 
   @override
   void initState() {
     super.initState();
+    // setting up form controls with validators, each field need to be required
+    // number() validator is for making sure user enters actual numbers
     form = fb.group({
       'title': FormControl<String>(validators: [Validators.required]),
       'type': FormControl<String>(value: 'Walking', validators: [Validators.required]),
-      'duration': FormControl<String>(validators: [Validators.required, Validators.number]),
-      'calories': FormControl<String>(validators: [Validators.required, Validators.number]),
-      'steps': FormControl<String>(validators: [Validators.required, Validators.number]),
-      'distance': FormControl<String>(validators: [Validators.required, Validators.number]),
+      'duration': FormControl<String>(validators: [Validators.required, Validators.number()]),
+      'calories': FormControl<String>(validators: [Validators.required, Validators.number()]),
+      'steps': FormControl<String>(validators: [Validators.required, Validators.number()]),
+      'distance': FormControl<String>(validators: [Validators.required, Validators.number()]),
       'location': FormControl<String>(validators: [Validators.required]),
       'notes': FormControl<String>(),
     });
   }
 
+  // this function saves the activity to database after checking if form is valid
   Future<void> saveActivity() async {
     if (form.valid) {
       Activity activity = Activity(
@@ -43,6 +46,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
         notes: (form.control('notes').value ?? '').toString().trim(),
       );
 
+      // inserting into database and getting back the result
       int result = await DatabaseServices.insertActivity(activity.toMap());
 
       if (!mounted) return;
@@ -63,6 +67,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
         );
       }
     } else {
+      // if form is not valid then mark all fields as touched so error messages shows
       form.markAllAsTouched();
     }
   }
